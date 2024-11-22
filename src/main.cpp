@@ -51,14 +51,13 @@ void loop()
     {
       if (client.available())
       {
+        // test ultrasonic sensor
+        String data = client.readStringUntil('\n');
+        // test button
         char command = client.read();
-        Serial.print("Received command: ");
-        Serial.println(command);
 
-        if (command == '1')
-        {
-          Serial.println("Command 1 received - Perform action here");
-        }
+        Serial.print("Received : ");
+        Serial.println(data);
       }
     }
     client.stop();
