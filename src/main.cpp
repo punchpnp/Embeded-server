@@ -11,6 +11,7 @@
 #include "FS.h"
 #include <SPI.h>
 #include <Adafruit_GFX.h>
+#include <HTTPClient.h>
 
 // Wi-Fi credentials
 const char *ssid = "punchpnp";
@@ -18,6 +19,34 @@ const char *password = "0955967996";
 
 WiFiServer server(80); // Create a server that listens on port 80
 WiFiClient client;
+
+// Line Notify
+const String LINE_TOKEN = "wHpInKQTtQ9OiQW9CgDwEIYXkzOSS1fH5QnUMCpOPYh"; // Your Line Notify Token
+
+void sendLineNotification(const String &message) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("https://notify-api.line.me/api/notify");
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    http.addHeader("Authorization", "Bearer " + LINE_TOKEN);
+
+    String payload = "message=" + message;
+    int httpResponseCode = http.POST(payload);
+
+    if (httpResponseCode == 200) {
+      Serial.print("LINE Notify sent successfully. HTTP Response Code: ");
+      Serial.println(httpResponseCode);
+      Serial.println("\n");
+    } else {
+      Serial.print("Error sending LINE Notify. HTTP Response Code: ");
+      Serial.println(httpResponseCode);
+      Serial.println("\n");
+    }
+    http.end();
+  } else {
+    Serial.println("WiFi not connected. Cannot send LINE Notify.");
+  }
+}
 
 void setup()
 {
@@ -58,6 +87,19 @@ void loop()
 
         Serial.print("Received : ");
         Serial.println(data);
+        Serial.print(" cm");
+
+        // Convert the received data to a float
+        float distance = data.toFloat();
+
+        // Check the condition
+        if (distance >= 9.40) {
+          String message = "น้ำหมดถัง"; // Custom message for specific condition
+          sendLineNotification(message);
+          Serial.println("Notification sent to LINE: น้ำหมดถัง");
+        } else {
+          Serial.println("Distance does not meet the condition.");
+        }
       }
     }
     client.stop();
