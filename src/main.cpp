@@ -14,8 +14,8 @@
 #include <HTTPClient.h>
 
 // Wi-Fi credentials
-const char *ssid = "punchpnp";
-const char *password = "0955967996";
+const char *ssid = "Jorpor.foto";
+const char *password = "88888888";
 
 WiFiServer server(80); // Create a server that listens on port 80
 WiFiClient client;
@@ -97,7 +97,20 @@ void loop()
 
         Serial.print("Received : ");
         Serial.println(data);
-        Serial.print(" cm");
+        // Serial.print(" cm");
+
+        if (data == "water")
+        {
+          String message = "เปิดปั้มน้ำ";
+          sendLineNotification(message);
+          Serial.println("Notification sent to LINE: เปิดปั้มน้ำ");
+          client.println(data);
+          Serial.println("Data(Water pump on) sent back to the client.");
+        }
+        else
+        {
+          Serial.println("Soil Moisture does not meet the condition.");
+        }
 
         // Convert the received data to a float
         float distance = data.toFloat();
@@ -105,7 +118,7 @@ void loop()
         // Check the condition
         if (distance >= 7.50)
         {
-          String message = "น้ำใกล้หมดถัง"; 
+          String message = "น้ำใกล้หมดถัง";
           sendLineNotification(message);
           Serial.println("Notification sent to LINE: น้ำหมดถัง");
         }
@@ -116,7 +129,7 @@ void loop()
 
         // Send the received data back to the client
         if (ultrasonicEnabled)
-        { 
+        {
           client.println(data);
           Serial.println("Data sent back to the client.");
         }
@@ -129,10 +142,10 @@ void loop()
 
 BLYNK_WRITE(V3) // Button for enable/disable ultrasonic
 {
-  int pinValue = param.asInt();        
+  int pinValue = param.asInt();
   ultrasonicEnabled = (pinValue == 1);
   if (ultrasonicEnabled)
-    Serial.println("Ultrasonic function enabled."); 
+    Serial.println("Ultrasonic function enabled.");
   else
-    Serial.println("Ultrasonic function disabled."); 
+    Serial.println("Ultrasonic function disabled.");
 }
