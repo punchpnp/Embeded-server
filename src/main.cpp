@@ -21,30 +21,37 @@ WiFiServer server(80); // Create a server that listens on port 80
 WiFiClient client;
 
 // Line Notify
-const String LINE_TOKEN = "wHpInKQTtQ9OiQW9CgDwEIYXkzOSS1fH5QnUMCpOPYh"; // Your Line Notify Token
+const String LINE_TOKEN = "fAKzjptkcxRekINRtvdoeELGw9puKg32fMZDIt0i905"; // Your Line Notify Token
 
-void sendLineNotification(const String &message) {
-  if (WiFi.status() == WL_CONNECTED) {
+void sendLineNotification(const String &message)
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
     HTTPClient http;
     http.begin("https://notify-api.line.me/api/notify");
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     http.addHeader("Authorization", "Bearer " + LINE_TOKEN);
 
     String payload = "message=" + message;
-    delay(60000);
+    delay(5000);
     int httpResponseCode = http.POST(payload);
 
-    if (httpResponseCode == 200) {
+    if (httpResponseCode == 200)
+    {
       Serial.print("LINE Notify sent successfully. HTTP Response Code: ");
       Serial.println(httpResponseCode);
       Serial.println("\n");
-    } else {
+    }
+    else
+    {
       Serial.print("Error sending LINE Notify. HTTP Response Code: ");
       Serial.println(httpResponseCode);
       Serial.println("\n");
     }
     http.end();
-  } else {
+  }
+  else
+  {
     Serial.println("WiFi not connected. Cannot send LINE Notify.");
   }
 }
@@ -71,6 +78,8 @@ void setup()
   Serial.println("Server started");
 }
 
+bool ultrasonicEnabled = false; // Ultrasonic function
+
 void loop()
 {
   client = server.available();
@@ -94,21 +103,36 @@ void loop()
         float distance = data.toFloat();
 
         // Check the condition
-        if (distance >= 9.40) {
-          String message = "น้ำหมดถัง"; // Custom message for specific condition
+        if (distance >= 7.50)
+        {
+          String message = "น้ำใกล้หมดถัง"; 
           sendLineNotification(message);
           Serial.println("Notification sent to LINE: น้ำหมดถัง");
-        } else {
+        }
+        else
+        {
           Serial.println("Distance does not meet the condition.");
         }
 
         // Send the received data back to the client
-        client.println(data); // New implementation: Sending the received data back to the client
-        Serial.println("Data sent back to the client."); // New implementation: Logging the response to the client
-      
+        if (ultrasonicEnabled)
+        { 
+          client.println(data);
+          Serial.println("Data sent back to the client.");
+        }
       }
     }
     client.stop();
     Serial.println("Client disconnected");
   }
+}
+
+BLYNK_WRITE(V3) // Button for enable/disable ultrasonic
+{
+  int pinValue = param.asInt();        
+  ultrasonicEnabled = (pinValue == 1);
+  if (ultrasonicEnabled)
+    Serial.println("Ultrasonic function enabled."); 
+  else
+    Serial.println("Ultrasonic function disabled."); 
 }
