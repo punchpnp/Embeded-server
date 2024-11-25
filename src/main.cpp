@@ -1,6 +1,8 @@
 #define BLYNK_TEMPLATE_ID "TMPL6_45WajaT"
 #define BLYNK_TEMPLATE_NAME "Project"
 #define BLYNK_AUTH_TOKEN "qnQBhPFZ_9isQv_uPwe-Im3U--A2mEOp"
+#define DHTPIN 4      // GPIO D4
+#define DHTTYPE DHT11 // DHT 11
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
@@ -16,7 +18,7 @@
 // Wi-Fi credentials
 const char *ssid = "punchpnp";
 const char *password = "0955967996";
-
+DHT dht(DHTPIN, DHTTYPE);
 WiFiServer server(80); // Create a server that listens on port 80
 WiFiClient client;
 
@@ -59,7 +61,7 @@ void sendLineNotification(const String &message)
 void setup()
 {
   Serial.begin(115200);
-
+  dht.begin();
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi...");
@@ -79,7 +81,7 @@ void setup()
 }
 
 bool ultrasonicEnabled = false; // Ultrasonic function
-
+bool humidtempEnable = false;
 void loop()
 {
   client = server.available();
@@ -90,6 +92,10 @@ void loop()
     {
       if (client.available())
       {
+        // init humid temp sensor
+        float humidity = dht.readHumidity();
+        float temperature = dht.readTemperature();
+
         // test ultrasonic sensor
         String data = client.readStringUntil('\n');
         // test button
@@ -105,7 +111,7 @@ void loop()
         // Check the condition
         if (distance >= 7.50)
         {
-          String message = "น้ำใกล้หมดถัง"; 
+          String message = "น้ำใกล้หมดถัง";
           sendLineNotification(message);
           Serial.println("Notification sent to LINE: น้ำหมดถัง");
         }
@@ -116,9 +122,25 @@ void loop()
 
         // Send the received data back to the client
         if (ultrasonicEnabled)
-        { 
+        {
           client.println(data);
           Serial.println("Data sent back to the client.");
+        }
+
+        // Check if any reads failed and exit early (to try again).
+        if (humidtempEnable)
+        {
+          if (isnan(humidity) || isnan(temperature))
+          {
+            Serial.println("Failed to read from DHT sensor!");
+            return;
+          }
+          client.print("Humidity: ");
+          client.print(humidity);
+          client.print(" %\t");
+          client.print("Temperature: ");
+          client.print(temperature);
+          client.println(" *C");
         }
       }
     }
@@ -129,10 +151,20 @@ void loop()
 
 BLYNK_WRITE(V3) // Button for enable/disable ultrasonic
 {
-  int pinValue = param.asInt();        
+  int pinValue = param.asInt();
   ultrasonicEnabled = (pinValue == 1);
   if (ultrasonicEnabled)
-    Serial.println("Ultrasonic function enabled."); 
+    Serial.println("Ultrasonic function enabled.");
   else
-    Serial.println("Ultrasonic function disabled."); 
+    Serial.println("Ultrasonic function disabled.");
+}
+
+BLYNK_WRITE(V5) // Button for enable/disable ultrasonic
+{
+  int pinValue = param.asInt();
+  humidtempEnable = (pinValue == 1);
+  if (humidtempEnable)
+    Serial.println("Humidity and Temperate function enabled.");
+  else
+    Serial.println("Humidity and Temperate function disabled.");
 }
