@@ -31,6 +31,7 @@ void sendLineNotification(const String &message) {
     http.addHeader("Authorization", "Bearer " + LINE_TOKEN);
 
     String payload = "message=" + message;
+    delay(60000);
     int httpResponseCode = http.POST(payload);
 
     if (httpResponseCode == 200) {
@@ -100,6 +101,11 @@ void loop()
         } else {
           Serial.println("Distance does not meet the condition.");
         }
+
+        // Send the received data back to the client
+        client.println(data); // New implementation: Sending the received data back to the client
+        Serial.println("Data sent back to the client."); // New implementation: Logging the response to the client
+      
       }
     }
     client.stop();
