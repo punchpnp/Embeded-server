@@ -14,8 +14,8 @@
 #include <HTTPClient.h>
 
 // Wi-Fi credentials
-const char *ssid = "Jorpor.foto";
-const char *password = "88888888";
+const char *ssid = "punchpnp";
+const char *password = "0955967996";
 
 WiFiServer server(80); // Create a server that listens on port 80
 WiFiClient client;
