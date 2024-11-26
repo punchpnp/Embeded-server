@@ -174,8 +174,8 @@ void humidtemp()
       }
       else
       {
-        handleFirebaseStoreData("Server/Huminity", humidity.toString());
-        handleFirebaseStoreData("Server/Temperature", temperature.toString());
+        handleFirebaseStoreData("Server/Huminity", String(humidity));
+        handleFirebaseStoreData("Server/Temperature", String(temperature));
 
         Serial.print("Measured Humidity: ");
         Serial.print(humidity);
@@ -259,7 +259,7 @@ void handleLightSensorClient(WiFiClient &client)
     Serial.print(lightSensorValue);
     Serial.print("\t");
 
-    handleFirebaseStoreData("Server/LightSensor", lightSensorValue.toString());
+    handleFirebaseStoreData("Server/LightSensor", String(lightSensorValue));
 
     String lightStatus = "Unknown";
     if (lightSensorValue < 40) {
