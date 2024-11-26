@@ -32,9 +32,14 @@ float temperature = 0.0;
 unsigned long previousMillis = 0;
 const unsigned long interval = 2000;
 
+// Light Sensor
+#define LIGHT_SENSOR_PIN 36 // ESP32 pin GIOP36 (ADC0)
+int lightSensorValue = 0;
+
 // Function enable/disable flags
 bool ultrasonicEnabled = false;
-bool humidtempEnable = false;
+bool humidtempEnabled = false;
+bool lightSensorEnabled = true;
 
 void sendLineNotification(const String &message)
 {
@@ -73,6 +78,7 @@ void setup()
 {
   Serial.begin(115200);
   dht.begin();
+  analogSetAttenuation(ADC_11db);
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -109,7 +115,7 @@ void humidtemp()
   {
     previousMillis = currentMillis;
 
-    if (humidtempEnable)
+    if (humidtempEnabled)
     {
       humidity = dht.readHumidity();
       temperature = dht.readTemperature();
@@ -171,7 +177,7 @@ void handleUltrasonicClient(WiFiClient &client, String data)
 
 void handleHumidityTemperatureClient(WiFiClient &client)
 {
-  if (humidtempEnable)
+  if (humidtempEnabled)
   {
     // Read humidity and temperature sensor
     humidity = dht.readHumidity();
@@ -187,11 +193,41 @@ void handleHumidityTemperatureClient(WiFiClient &client)
   }
 }
 
+void handleLightSensorClient(WiFiClient &client)
+{
+  if (lightSensorEnabled)
+  {
+    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // Read light sensor value
+
+    Serial.print("Analog Value = ");
+    Serial.print(lightSensorValue);
+    Serial.print("\t");
+
+    String lightStatus = "Unknown";
+    if (lightSensorValue < 40) {
+      lightStatus = "Dark";
+    } else if (lightSensorValue < 800) {
+      lightStatus = "Dim";
+    } else if (lightSensorValue < 2000) {
+      lightStatus = "Light";
+    } else if (lightSensorValue < 3200) {
+      lightStatus = "Bright";
+    } else {
+      lightStatus = "Very bright";
+    }
+
+    client.print("Light Status: ");
+    client.println(lightStatus);
+    Serial.print("Light Sensor: ");
+    Serial.println(lightStatus);
+  }
+}
+
 void loop()
 {
   Blynk.run();
 
-  if (humidtempEnable)
+  if (humidtempEnabled)
     humidtemp();
 
   client = server.available();
@@ -210,6 +246,7 @@ void loop()
         handleUltrasonicClient(client, data);
         handleHumidityTemperatureClient(client);
         handleSoilMoistureClient(client, data);
+        handleLightSensorClient(client);
       }
     }
     client.stop();
@@ -230,8 +267,8 @@ BLYNK_WRITE(V3) // Button for enable/disable ultrasonic
 BLYNK_WRITE(V5) // Button for enable/disable Humid and Temperate
 {
   int pinValue = param.asInt();
-  humidtempEnable = (pinValue == 1);
-  if (humidtempEnable)
+  humidtempEnabled = (pinValue == 1);
+  if (humidtempEnabled)
     Serial.println("Humidity and Temperate function enabled.");
   else
     Serial.println("Humidity and Temperate function disabled.");
