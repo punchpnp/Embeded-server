@@ -27,10 +27,14 @@ const String LINE_TOKEN = "fAKzjptkcxRekINRtvdoeELGw9puKg32fMZDIt0i905"; // Your
 #define DHTPIN 4
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
-float humidity = 0.0;                
-float temperature = 0.0;            
-unsigned long previousMillis = 0;   
-const unsigned long interval = 2000; 
+float humidity = 0.0;
+float temperature = 0.0;
+unsigned long previousMillis = 0;
+const unsigned long interval = 2000;
+
+// Function enable/disable flags
+bool ultrasonicEnabled = false;
+bool humidtempEnable = false;
 
 void sendLineNotification(const String &message)
 {
@@ -97,13 +101,8 @@ void setup()
   Serial.println("Server started");
 }
 
-bool ultrasonicEnabled = false; // Ultrasonic function
-bool humidtempEnable = false;   // Humidity and Temperature function
-
-void loop()
+void humidtemp()
 {
-  Blynk.run();
-
   // Periodically measure humidity and temperature
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval)
@@ -130,6 +129,70 @@ void loop()
       }
     }
   }
+}
+
+void handleSoilMoistureClient(WiFiClient &client, String data)
+{
+  if (data == "water")
+  {
+    String message = "เปิดปั้มน้ำ";
+    sendLineNotification(message);
+    Serial.println("Notification sent to LINE: เปิดปั้มน้ำ");
+    client.println("openPump");
+    Serial.println("Data(Water pump on) sent back to the client.");
+  }
+  else
+  {
+    Serial.println("Soil Moisture does not meet the condition.");
+  }
+}
+
+void handleUltrasonicClient(WiFiClient &client, String data)
+{
+  if (ultrasonicEnabled)
+  {
+    float distance = data.toFloat();
+
+    if (distance >= 7.50)
+    {
+      String message = "น้ำใกล้หมดถัง";
+      sendLineNotification(message);
+      Serial.println("Notification sent to LINE: น้ำหมดถัง");
+    }
+    else
+    {
+      Serial.println("Distance does not meet the condition.");
+    }
+
+    client.println(data);
+    Serial.println("Data sent back to the client.");
+  }
+}
+
+void handleHumidityTemperatureClient(WiFiClient &client)
+{
+  if (humidtempEnable)
+  {
+    // Read humidity and temperature sensor
+    humidity = dht.readHumidity();
+    temperature = dht.readTemperature();
+
+    client.print("Humidity: ");
+    client.print(humidity);
+    client.print(" %\t");
+    client.print("Temperature: ");
+    client.print(temperature);
+    client.println(" *C");
+    Serial.println("Sent humidity and temperature data to client.");
+  }
+}
+
+void loop()
+{
+  Blynk.run();
+
+  if (humidtempEnable)
+    humidtemp();
 
   client = server.available();
   if (client)
@@ -139,63 +202,14 @@ void loop()
     {
       if (client.available())
       {
-        // init humid temp sensor
-        float humidity = dht.readHumidity();
-        float temperature = dht.readTemperature();
-
         // test ultrasonic sensor
         String data = client.readStringUntil('\n');
+        data.trim();
 
-        // test button
-        char command = client.read();
-
-        Serial.print("Received : ");
-        Serial.println(data);
-        // Serial.print(" cm");
-
-        if (data == "water")
-        {
-          String message = "เปิดปั้มน้ำ";
-          sendLineNotification(message);
-          Serial.println("Notification sent to LINE: เปิดปั้มน้ำ");
-          client.println(data);
-          Serial.println("Data(Water pump on) sent back to the client.");
-        }
-        else
-        {
-          Serial.println("Soil Moisture does not meet the condition.");
-        }
-
-        // Convert the received data to a float
-        float distance = data.toFloat();
-
-        // Check the condition
-        if (distance >= 7.50)
-        {
-          String message = "น้ำใกล้หมดถัง";
-          sendLineNotification(message);
-          Serial.println("Notification sent to LINE: น้ำหมดถัง");
-        }
-        else
-        {
-          Serial.println("Distance does not meet the condition.");
-        }
-
-        // Send the received data back to the client
-        if (ultrasonicEnabled)
-        {
-          client.println(data);
-          Serial.println("Data sent back to the client.");
-        }
-
-        // Send the latest humidity and temperature data to the client
-        client.print("Humidity: ");
-        client.print(humidity);
-        client.print(" %\t");
-        client.print("Temperature: ");
-        client.print(temperature);
-        client.println(" *C");
-        Serial.println("Sent humidity and temperature data to client.");
+        // Handle different sensor data
+        handleUltrasonicClient(client, data);
+        handleHumidityTemperatureClient(client);
+        handleSoilMoistureClient(client, data);
       }
     }
     client.stop();
@@ -222,4 +236,3 @@ BLYNK_WRITE(V5) // Button for enable/disable Humid and Temperate
   else
     Serial.println("Humidity and Temperate function disabled.");
 }
-
