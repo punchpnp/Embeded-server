@@ -151,7 +151,20 @@ void loop()
 
         Serial.print("Received : ");
         Serial.println(data);
-        Serial.print(" cm");
+        // Serial.print(" cm");
+
+        if (data == "water")
+        {
+          String message = "เปิดปั้มน้ำ";
+          sendLineNotification(message);
+          Serial.println("Notification sent to LINE: เปิดปั้มน้ำ");
+          client.println(data);
+          Serial.println("Data(Water pump on) sent back to the client.");
+        }
+        else
+        {
+          Serial.println("Soil Moisture does not meet the condition.");
+        }
 
         // Convert the received data to a float
         float distance = data.toFloat();
@@ -209,3 +222,4 @@ BLYNK_WRITE(V5) // Button for enable/disable Humid and Temperate
   else
     Serial.println("Humidity and Temperate function disabled.");
 }
+
