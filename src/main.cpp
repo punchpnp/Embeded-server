@@ -22,8 +22,8 @@
 #include <addons/RTDBHelper.h>
 
 // Wi-Fi credentials
-const char *ssid = "GAMEROOM_2.4G";
-const char *password = "66035r00mgam3";
+const char *ssid = "punchpnp";
+const char *password = "0955967996";
 
 bool FB_signupOK = false;
 FirebaseData fbdo;
@@ -50,8 +50,8 @@ const unsigned long interval = 2000;
 int lightSensorValue = 0;
 
 // Function enable/disable flags
-bool ultrasonicEnabled = false;
-bool humidtempEnabled = false;
+bool ultrasonicEnabled = true;
+bool humidtempEnabled = true;
 bool lightSensorEnabled = true;
 
 void sendLineNotification(const String &message)
@@ -285,9 +285,6 @@ void loop()
 {
   Blynk.run();
 
-  if (humidtempEnabled)
-    humidtemp();
-
   client = server.available();
   if (client)
   {
@@ -299,6 +296,9 @@ void loop()
         // test ultrasonic sensor
         String data = client.readStringUntil('\n');
         data.trim();
+
+        if (humidtempEnabled)
+          humidtemp();
 
         // Handle different sensor data
         handleUltrasonicClient(client, data);
