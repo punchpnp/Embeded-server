@@ -177,6 +177,9 @@ void humidtemp()
         handleFirebaseStoreData("Server/Huminity", String(humidity));
         handleFirebaseStoreData("Server/Temperature", String(temperature));
 
+        Blynk.virtualWrite(V1, humidity);
+        Blynk.virtualWrite(V2, temperature);
+
         Serial.print("Measured Humidity: ");
         Serial.print(humidity);
         Serial.println(" %");
@@ -190,22 +193,14 @@ void humidtemp()
 
 void handleSoilMoistureClient(WiFiClient &client, String data)
 {
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval)
+  if (data.indexOf("water") != 1)
   {
-    previousMillis = currentMillis;
-    if (data == "water")
-    {
-      String message = "เปิดปั้มน้ำ";
-      sendLineNotification(message);
-      Serial.println("Notification sent to LINE: เปิดปั้มน้ำ");
-      client.println("openPump");
-      Serial.println("Data(Water pump on) sent back to the client.");
-    }
-    else
-    {
-      Serial.println("Soil Moisture does not meet the condition.");
-    }
+    Serial.println("Soil Moisture does not meet the condition.");
+  }
+  else
+  {
+    client.println("openPump");
+    Serial.println("Data(Water pump on) sent back to the client.");
   }
 }
 
@@ -309,8 +304,6 @@ void loop()
         // Handle different sensor data
         if (humidtempEnabled)
           humidtemp();
-        Serial.println("-----------------------------");
-        handleUltrasonicClient(client, data);
         Serial.println("-----------------------------");
         handleHumidityTemperatureClient(client);
         Serial.println("-----------------------------");
