@@ -33,7 +33,7 @@ unsigned long previousMillis = 0;
 const unsigned long interval = 2000;
 
 // Light Sensor
-#define LIGHT_SENSOR_PIN 36 // ESP32 pin GIOP36 (ADC0)
+#define LIGHT_SENSOR_PIN 15 // ESP32 pin GIOP36 (ADC0)
 int lightSensorValue = 0;
 
 // Function enable/disable flags
