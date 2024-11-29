@@ -262,15 +262,24 @@ void handleLightSensorClient(WiFiClient &client)
     handleFirebaseStoreData("Server/LightSensor", String(lightSensorValue));
 
     String lightStatus = "Unknown";
-    if (lightSensorValue < 40) {
+    if (lightSensorValue < 40)
+    {
       lightStatus = "Dark";
-    } else if (lightSensorValue < 800) {
+    }
+    else if (lightSensorValue < 800)
+    {
       lightStatus = "Dim";
-    } else if (lightSensorValue < 2000) {
+    }
+    else if (lightSensorValue < 2000)
+    {
       lightStatus = "Light";
-    } else if (lightSensorValue < 3200) {
+    }
+    else if (lightSensorValue < 3200)
+    {
       lightStatus = "Bright";
-    } else {
+    }
+    else
+    {
       lightStatus = "Very bright";
     }
 
@@ -301,10 +310,17 @@ void loop()
           humidtemp();
 
         // Handle different sensor data
+        if (humidtempEnabled)
+          humidtemp();
+        Serial.println("-----------------------------");
         handleUltrasonicClient(client, data);
+        Serial.println("-----------------------------");
         handleHumidityTemperatureClient(client);
+        Serial.println("-----------------------------");
         handleSoilMoistureClient(client, data);
+        Serial.println("-----------------------------");
         handleLightSensorClient(client);
+        Serial.println("-----------------------------");
       }
     }
     client.stop();
