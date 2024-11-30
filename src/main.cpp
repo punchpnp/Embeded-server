@@ -22,8 +22,8 @@
 #include <addons/RTDBHelper.h>
 
 // Wi-Fi credentials
-const char *ssid = "punchpnp";
-const char *password = "0955967996";
+const char *ssid = "jpap";
+const char *password = "12341234";
 
 bool FB_signupOK = false;
 FirebaseData fbdo;
@@ -261,7 +261,7 @@ void collectAndStoreAllSensorData()
 {
   if (Firebase.ready() && FB_signupOK)
   {
-    if (isnan(humidity) || isnan(temperature))
+    if (isnan(humidity) && isnan(temperature) && isnan(lightSensorValue))
     {
       Serial.println("Firebase: Failed to read from DHT sensor!");
       return;
@@ -303,7 +303,7 @@ void collectAndStoreAllSensorData()
     json.toString(jsonData, true);
 
     // Push the JSON object to Firebase
-    if (Firebase.RTDB.pushJSON(&fbdo, "Server/SensorData", json))
+    if (Firebase.RTDB.pushJSON(&fbdo, "Server/SensorData", &json))
     {
       Serial.println("Successfully stored combined sensor data:");
       Serial.println(jsonData);
@@ -331,8 +331,6 @@ void loop()
         String data = client.readStringUntil('\n');
         data.trim();
 
-        collectAndStoreAllSensorData();
-
         // Handle different sensor data
         if (humidtempEnabled)
           humidtemp();
@@ -343,6 +341,8 @@ void loop()
         Serial.println("-----------------------------");
         handleLightSensorClient(client);
         Serial.println("-----------------------------");
+
+        collectAndStoreAllSensorData();
       }
     }
     client.stop();
