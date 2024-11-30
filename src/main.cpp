@@ -137,24 +137,6 @@ void setup()
   Serial.println("Server started");
 }
 
-void handleFirebaseStoreData(String _path, String _data)
-{
-  if (Firebase.ready() && FB_signupOK)
-  {
-    if (Firebase.RTDB.pushString(&fbdo, _path, _data))
-    {
-      Serial.println();
-      Serial.print(_data);
-      Serial.print(" - Successfully saved to: " + fbdo.dataPath());
-      Serial.println(" (" + fbdo.dataType() + ")");
-    }
-    else
-    {
-      Serial.println("FAILED: " + fbdo.errorReason());
-    }
-  }
-}
-
 void humidtemp()
 {
   unsigned long currentMillis = millis();
@@ -244,7 +226,7 @@ void handleLightSensorClient(WiFiClient &client)
 {
   if (lightSensorEnabled)
   {
-    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // อ่านค่าจากเซ็นเซอร์แสง
+    lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // อ่านค่าจากเซ็นเซอร์แสง
 
     String lightStatus = "Unknown";
     if (lightSensorValue < 40)
@@ -279,14 +261,9 @@ void collectAndStoreAllSensorData()
 {
   if (Firebase.ready() && FB_signupOK)
   {
-    // Collect sensor data
-    humidity = dht.readHumidity();
-    temperature = dht.readTemperature();
-    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN);
-
     if (isnan(humidity) || isnan(temperature))
     {
-      Serial.println("Failed to read from DHT sensor!");
+      Serial.println("Firebase: Failed to read from DHT sensor!");
       return;
     }
 
