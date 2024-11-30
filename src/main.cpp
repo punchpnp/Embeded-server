@@ -27,8 +27,8 @@ LiquidCrystal_I2C lcd(0x27, 8, 1);
 String feeling = "happy";
 
 // Wi-Fi credentials
-const char *ssid = "punchpnp";
-const char *password = "0955967996";
+const char *ssid = "jpap";
+const char *password = "12341234";
 
 bool FB_signupOK = false;
 FirebaseData fbdo;
@@ -180,27 +180,8 @@ void setup()
   Serial.println("Server started");
 }
 
-void handleFirebaseStoreData(String _path, String _data)
-{
-  if (Firebase.ready() && FB_signupOK)
-  {
-    if (Firebase.RTDB.setString(&fbdo, _path, _data))
-    {
-      Serial.println();
-      Serial.print(_data);
-      Serial.print(" - Successfully saved to: " + fbdo.dataPath());
-      Serial.println(" (" + fbdo.dataType() + ")");
-    }
-    else
-    {
-      Serial.println("FAILED: " + fbdo.errorReason());
-    }
-  }
-}
-
 void humidtemp()
 {
-  // Periodically measure humidity and temperature
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval)
   {
@@ -217,9 +198,6 @@ void humidtemp()
       }
       else
       {
-        handleFirebaseStoreData("Server/Huminity", String(humidity));
-        handleFirebaseStoreData("Server/Temperature", String(temperature));
-
         Blynk.virtualWrite(V1, humidity);
         Blynk.virtualWrite(V2, temperature);
 
@@ -291,13 +269,7 @@ void handleLightSensorClient(WiFiClient &client)
 {
   if (lightSensorEnabled)
   {
-    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // Read light sensor value
-
-    Serial.print("Analog Value = ");
-    Serial.print(lightSensorValue);
-    Serial.print("\t");
-
-    handleFirebaseStoreData("Server/LightSensor", String(lightSensorValue));
+    lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // อ่านค่าจากเซ็นเซอร์แสง
 
     String lightStatus = "Unknown";
     if (lightSensorValue < 40)
@@ -333,26 +305,56 @@ void feelingLoop()
   if (feeling == "happy")
   {
     displayFeeling("happy");
-    delay(1000);
   }
   else if (feeling == "good")
   {
     displayFeeling("good");
-    delay(1000);
   }
   else if (feeling == "sad")
   {
     displayFeeling("sad");
-    delay(1000);
+  }
+}
+
+void collectAndStoreAllSensorData()
+{
+  if (Firebase.ready() && FB_signupOK)
+  {
+    if (isnan(humidity) && isnan(temperature) && isnan(lightSensorValue))
+    {
+      Serial.println("Firebase: Failed to read from DHT sensor!");
+      return;
+    }
+
+    // Create a JSON object
+    FirebaseJson json;
+    json.set("timestamp", String(millis())); // Add a timestamp
+    json.set("humidity", humidity);
+    json.set("temperature", temperature);
+    json.set("lightValue", lightSensorValue);
+    json.set("Status", feeling);
+
+    // Convert JSON object to string
+    String jsonData;
+    json.toString(jsonData, true);
+
+    // Push the JSON object to Firebase
+    if (Firebase.RTDB.pushJSON(&fbdo, "Server/SensorData", &json))
+    {
+      Serial.println("Successfully stored combined sensor data:");
+      Serial.println(jsonData);
+    }
+    else
+    {
+      Serial.println("Failed to store sensor data: " + fbdo.errorReason());
+    }
   }
 }
 
 void loop()
 {
   Blynk.run();
-
   feelingLoop();
-
   client = server.available();
   if (client)
   {
@@ -375,6 +377,8 @@ void loop()
         Serial.println("-----------------------------");
         handleLightSensorClient(client);
         Serial.println("-----------------------------");
+        collectAndStoreAllSensorData();
+        // feelingLoop();
       }
     }
     client.stop();
