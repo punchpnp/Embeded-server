@@ -141,7 +141,7 @@ void handleFirebaseStoreData(String _path, String _data)
 {
   if (Firebase.ready() && FB_signupOK)
   {
-    if (Firebase.RTDB.setString(&fbdo, _path, _data))
+    if (Firebase.RTDB.pushString(&fbdo, _path, _data))
     {
       Serial.println();
       Serial.print(_data);
@@ -157,7 +157,6 @@ void handleFirebaseStoreData(String _path, String _data)
 
 void humidtemp()
 {
-  // Periodically measure humidity and temperature
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval)
   {
@@ -174,9 +173,6 @@ void humidtemp()
       }
       else
       {
-        handleFirebaseStoreData("Server/Huminity", String(humidity));
-        handleFirebaseStoreData("Server/Temperature", String(temperature));
-
         Blynk.virtualWrite(V1, humidity);
         Blynk.virtualWrite(V2, temperature);
 
@@ -248,13 +244,7 @@ void handleLightSensorClient(WiFiClient &client)
 {
   if (lightSensorEnabled)
   {
-    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // Read light sensor value
-
-    Serial.print("Analog Value = ");
-    Serial.print(lightSensorValue);
-    Serial.print("\t");
-
-    handleFirebaseStoreData("Server/LightSensor", String(lightSensorValue));
+    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // อ่านค่าจากเซ็นเซอร์แสง
 
     String lightStatus = "Unknown";
     if (lightSensorValue < 40)
@@ -285,6 +275,69 @@ void handleLightSensorClient(WiFiClient &client)
   }
 }
 
+void collectAndStoreAllSensorData()
+{
+  if (Firebase.ready() && FB_signupOK)
+  {
+    // Collect sensor data
+    humidity = dht.readHumidity();
+    temperature = dht.readTemperature();
+    int lightSensorValue = analogRead(LIGHT_SENSOR_PIN);
+
+    if (isnan(humidity) || isnan(temperature))
+    {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
+    }
+
+    // Create a JSON object
+    FirebaseJson json;
+    json.set("timestamp", String(millis())); // Add a timestamp
+    json.set("humidity", humidity);
+    json.set("temperature", temperature);
+    json.set("lightValue", lightSensorValue);
+
+    String lightStatus = "Unknown";
+    if (lightSensorValue < 40)
+    {
+      lightStatus = "Dark";
+    }
+    else if (lightSensorValue < 800)
+    {
+      lightStatus = "Dim";
+    }
+    else if (lightSensorValue < 2000)
+    {
+      lightStatus = "Light";
+    }
+    else if (lightSensorValue < 3200)
+    {
+      lightStatus = "Bright";
+    }
+    else
+    {
+      lightStatus = "Very bright";
+    }
+
+    json.set("lightStatus", lightStatus);
+
+    // Convert JSON object to string
+    String jsonData;
+    json.toString(jsonData, true);
+
+    // Push the JSON object to Firebase
+    if (Firebase.RTDB.pushJSON(&fbdo, "Server/SensorData", json))
+    {
+      Serial.println("Successfully stored combined sensor data:");
+      Serial.println(jsonData);
+    }
+    else
+    {
+      Serial.println("Failed to store sensor data: " + fbdo.errorReason());
+    }
+  }
+}
+
 void loop()
 {
   Blynk.run();
@@ -300,6 +353,8 @@ void loop()
         // test ultrasonic sensor
         String data = client.readStringUntil('\n');
         data.trim();
+
+        collectAndStoreAllSensorData();
 
         // Handle different sensor data
         if (humidtempEnabled)
