@@ -305,17 +305,14 @@ void feelingLoop()
   if (feeling == "happy")
   {
     displayFeeling("happy");
-    delay(1000);
   }
   else if (feeling == "good")
   {
     displayFeeling("good");
-    delay(1000);
   }
   else if (feeling == "sad")
   {
     displayFeeling("sad");
-    delay(1000);
   }
 }
 
@@ -357,9 +354,7 @@ void collectAndStoreAllSensorData()
 void loop()
 {
   Blynk.run();
-
   feelingLoop();
-
   client = server.available();
   if (client)
   {
@@ -382,8 +377,8 @@ void loop()
         Serial.println("-----------------------------");
         handleLightSensorClient(client);
         Serial.println("-----------------------------");
-
         collectAndStoreAllSensorData();
+        // feelingLoop();
       }
     }
     client.stop();
