@@ -20,6 +20,11 @@
 #include <Firebase_ESP_Client.h>
 #include <addons/TokenHelper.h>
 #include <addons/RTDBHelper.h>
+#include <LiquidCrystal_I2C.h>
+
+// LCD display setup
+LiquidCrystal_I2C lcd(0x27, 8, 1);
+String feeling = "happy";
 
 // Wi-Fi credentials
 const char *ssid = "punchpnp";
@@ -53,6 +58,39 @@ int lightSensorValue = 0;
 bool ultrasonicEnabled = true;
 bool humidtempEnabled = true;
 bool lightSensorEnabled = true;
+
+void displayFeeling(String mood)
+{
+  lcd.clear();
+
+  if (mood == "happy")
+  {
+    lcd.setCursor(3, 0);
+    lcd.print("( O w O )");
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(3, 0);
+    lcd.print("( - w - )");
+  }
+  else if (mood == "good")
+  {
+    lcd.setCursor(3, 0);
+    lcd.print("( - _ - )");
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(3, 0);
+    lcd.print("( - O - )");
+  }
+  else if (mood == "sad")
+  {
+    lcd.setCursor(3, 0);
+    lcd.print("( T _ T )");
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(3, 0);
+    lcd.print("( T - T )");
+  }
+}
 
 void sendLineNotification(const String &message)
 {
@@ -92,6 +130,11 @@ void setup()
   Serial.begin(115200);
   dht.begin();
   analogSetAttenuation(ADC_11db);
+
+  // Initialize the LCD
+  lcd.init();
+  lcd.backlight();
+  displayFeeling(feeling);
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -285,9 +328,30 @@ void handleLightSensorClient(WiFiClient &client)
   }
 }
 
+void feelingLoop()
+{
+  if (feeling == "happy")
+  {
+    displayFeeling("happy");
+    delay(1000);
+  }
+  else if (feeling == "good")
+  {
+    displayFeeling("good");
+    delay(1000);
+  }
+  else if (feeling == "sad")
+  {
+    displayFeeling("sad");
+    delay(1000);
+  }
+}
+
 void loop()
 {
   Blynk.run();
+
+  feelingLoop();
 
   client = server.available();
   if (client)
