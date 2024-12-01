@@ -47,8 +47,12 @@ const String LINE_TOKEN = "xVKToYyNrrXilrxvL71rmaFpl9CrHrRR3IA8FqnsZd0"; // Your
 DHT dht(DHTPIN, DHTTYPE);
 float humidity = 0.0;
 float temperature = 0.0;
+String lightStatus = "Unknown";
 unsigned long previousMillis = 0;
 const unsigned long interval = 2000;
+
+// SoilMoist (Query Firebase)
+int soilMoistValue;
 
 // Light Sensor
 #define LIGHT_SENSOR_PIN 34 // ESP32 pin GIOP36 (ADC0)
@@ -273,26 +277,18 @@ void handleLightSensorClient(WiFiClient &client)
   {
     lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // อ่านค่าจากเซ็นเซอร์แสง
 
-    String lightStatus = "Unknown";
-    if (lightSensorValue < 40)
-    {
-      lightStatus = "Dark";
-    }
-    else if (lightSensorValue < 800)
+    lightStatus = "Unknown";
+    if (lightSensorValue < 200)
     {
       lightStatus = "Dim";
     }
-    else if (lightSensorValue < 2000)
+    else if (lightSensorValue < 600)
     {
       lightStatus = "Light";
     }
-    else if (lightSensorValue < 3200)
-    {
-      lightStatus = "Bright";
-    }
     else
     {
-      lightStatus = "Very bright";
+      lightStatus = "Bright";
     }
 
     client.print("Light Status: ");
@@ -302,8 +298,40 @@ void handleLightSensorClient(WiFiClient &client)
   }
 }
 
+void handleFeeling()
+{
+  if (isnan(soilMoistValue) || isnan(lightSensorValue) || isnan(temperature) || isnan(humidity))
+  {
+    Serial.println("Some data are missed!");
+    return;
+  }
+  String newFeeling = feeling;
+  if ((soilMoistValue < 40 || soilMoistValue > 80) && lightSensorValue < 200 && (temperature < 18 || temperature > 32) && (humidity < 30 || humidity > 80))
+  {
+    newFeeling = "sad";
+  }
+  else if ((soilMoistValue >= 40 && soilMoistValue <= 60) && (lightSensorValue >= 400 && lightSensorValue <= 600) && (temperature >= 18 && temperature <= 22) && (humidity >= 40 || humidity <= 50))
+  {
+    newFeeling = "good";
+  }
+  else
+  {
+    newFeeling = "happy";
+  }
+
+  if (newFeeling != feeling)
+  {
+    feeling = newFeeling;
+  }
+  else
+  {
+    return;
+  }
+}
+
 void feelingLoop()
 {
+  handleFeeling();
   if (feeling == "happy")
   {
     displayFeeling("happy");
@@ -334,6 +362,7 @@ void collectAndStoreAllSensorData()
     json.set("humidity", humidity);
     json.set("temperature", temperature);
     json.set("lightValue", lightSensorValue);
+    json.set("lightStatus", lightStatus);
     json.set("Status", feeling);
 
     // Convert JSON object to string
@@ -353,6 +382,58 @@ void collectAndStoreAllSensorData()
   }
 }
 
+void getSoilMoist()
+{
+  if (Firebase.RTDB.getJSON(&fbdo, "Client/SensorData"))
+  {
+    FirebaseJson &json = fbdo.jsonObject();
+    String latestNode = "";
+    int totalNodes = 0;
+    int type;
+
+    json.iteratorBegin();
+    while (json.iteratorGet(totalNodes, type, latestNode, latestNode) != -1)
+    {
+      totalNodes++;
+    }
+    json.iteratorEnd();
+
+    if (totalNodes > 0)
+    {
+      json.iteratorBegin();
+      for (int i = 0; i < totalNodes; i++)
+      {
+        String key, value;
+        json.iteratorGet(i, type, key, value);
+        if (i == totalNodes - 1)
+        {
+          latestNode = key;
+        }
+      }
+      json.iteratorEnd();
+
+      String path = "Client/SensorData/" + latestNode + "/soilmoist";
+      if (Firebase.RTDB.getInt(&fbdo, path))
+      {
+        soilMoistValue = fbdo.intData();
+        Serial.println("Latest soilmoist: " + String(soilMoistValue));
+      }
+      else
+      {
+        Serial.println("Failed to get soil moisture value: " + fbdo.errorReason());
+      }
+    }
+    else
+    {
+      Serial.println("No sensor data available.");
+    }
+  }
+  else
+  {
+    Serial.println("Failed to retrieve sensor data: " + fbdo.errorReason());
+  }
+}
+
 void loop()
 {
   Blynk.run();
@@ -363,6 +444,8 @@ void loop()
     Serial.println("Client connected");
     while (client.connected())
     {
+      getSoilMoist();
+
       // test ultrasonic sensor
       String data = client.readStringUntil('\n');
       data.trim();
