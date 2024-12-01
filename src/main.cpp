@@ -308,17 +308,17 @@ void handleFeeling()
     Serial.println("Some data are missed!");
     return;
   }
-  if ((soilMoistValue < 40 || soilMoistValue > 80) && lightSensorValue < 400 && (temperature < 18 || temperature > 32) && (humidity < 40 || humidity > 80))
+  if ((soilMoistValue >= 60 && soilMoistValue <= 80) && (lightSensorValue >= 600) && (temperature >= 22 && temperature <= 28) && (humidity >= 50 && humidity <= 70))
   {
-    feeling = "sad";
+    feeling = "happy";
   }
-  else if ((soilMoistValue >= 40 && soilMoistValue <= 60) && (lightSensorValue >= 400 && lightSensorValue <= 600) && (temperature >= 18 && temperature <= 22) && (humidity >= 40 || humidity <= 50))
+  else if ((soilMoistValue >= 40 && soilMoistValue < 60) && (lightSensorValue >= 400 && lightSensorValue < 600) && (temperature >= 18 && temperature < 22) && (humidity >= 40 && humidity < 50))
   {
     feeling = "good";
   }
   else
   {
-    feeling = "happy";
+    feeling = "sad";
   }
 }
 
