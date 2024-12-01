@@ -27,8 +27,8 @@ LiquidCrystal_I2C lcd(0x27, 8, 1);
 String feeling = "happy";
 
 // Wi-Fi credentials
-const char *ssid = "jpap";
-const char *password = "12341234";
+const char *ssid = "punchpnp";
+const char *password = "0955967996";
 
 bool FB_signupOK = false;
 FirebaseData fbdo;
@@ -39,7 +39,7 @@ WiFiServer server(80); // Create a server that listens on port 80
 WiFiClient client;
 
 // Line Notify
-const String LINE_TOKEN = "fAKzjptkcxRekINRtvdoeELGw9puKg32fMZDIt0i905"; // Your Line Notify Token
+const String LINE_TOKEN = "xVKToYyNrrXilrxvL71rmaFpl9CrHrRR3IA8FqnsZd0"; // Your Line Notify Token
 
 // Temperature and Humidity Sensor
 #define DHTPIN 4
@@ -214,7 +214,9 @@ void humidtemp()
 
 void handleSoilMoistureClient(WiFiClient &client, String data)
 {
-  if (data.indexOf("water") != 1)
+  Serial.print("Data received: ");
+  Serial.println(data);
+  if (data != "water")
   {
     Serial.println("Soil Moisture does not meet the condition.");
   }
@@ -361,25 +363,22 @@ void loop()
     Serial.println("Client connected");
     while (client.connected())
     {
-      if (client.available())
-      {
-        // test ultrasonic sensor
-        String data = client.readStringUntil('\n');
-        data.trim();
+      // test ultrasonic sensor
+      String data = client.readStringUntil('\n');
+      data.trim();
 
-        // Handle different sensor data
-        if (humidtempEnabled)
-          humidtemp();
-        Serial.println("-----------------------------");
-        handleHumidityTemperatureClient(client);
-        Serial.println("-----------------------------");
-        handleSoilMoistureClient(client, data);
-        Serial.println("-----------------------------");
-        handleLightSensorClient(client);
-        Serial.println("-----------------------------");
-        collectAndStoreAllSensorData();
-        // feelingLoop();
-      }
+      // Handle different sensor data
+      if (humidtempEnabled)
+        humidtemp();
+      Serial.println("-----------------------------");
+      handleHumidityTemperatureClient(client);
+      Serial.println("-----------------------------");
+      handleSoilMoistureClient(client, data);
+      Serial.println("-----------------------------");
+      handleLightSensorClient(client);
+      Serial.println("-----------------------------");
+      collectAndStoreAllSensorData();
+      feelingLoop();
     }
     client.stop();
     Serial.println("Client disconnected");
