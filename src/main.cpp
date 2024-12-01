@@ -278,11 +278,11 @@ void handleLightSensorClient(WiFiClient &client)
     lightSensorValue = analogRead(LIGHT_SENSOR_PIN); // อ่านค่าจากเซ็นเซอร์แสง
 
     lightStatus = "Unknown";
-    if (lightSensorValue < 200)
+    if (lightSensorValue < 400)
     {
       lightStatus = "Dim";
     }
-    else if (lightSensorValue < 600)
+    else if ((lightSensorValue >= 400) && (lightSensorValue <= 600))
     {
       lightStatus = "Light";
     }
@@ -291,9 +291,12 @@ void handleLightSensorClient(WiFiClient &client)
       lightStatus = "Bright";
     }
 
+    Blynk.virtualWrite(V7, lightSensorValue);
+
     client.print("Light Status: ");
     client.println(lightStatus);
-    Serial.print("Light Sensor: ");
+    Serial.print("handleLight: ");
+    Serial.println(lightStatus);
     Serial.println(lightStatus);
   }
 }
@@ -305,27 +308,17 @@ void handleFeeling()
     Serial.println("Some data are missed!");
     return;
   }
-  String newFeeling = feeling;
-  if ((soilMoistValue < 40 || soilMoistValue > 80) && lightSensorValue < 200 && (temperature < 18 || temperature > 32) && (humidity < 30 || humidity > 80))
+  if ((soilMoistValue < 40 || soilMoistValue > 80) && lightSensorValue < 400 && (temperature < 18 || temperature > 32) && (humidity < 40 || humidity > 80))
   {
-    newFeeling = "sad";
+    feeling = "sad";
   }
   else if ((soilMoistValue >= 40 && soilMoistValue <= 60) && (lightSensorValue >= 400 && lightSensorValue <= 600) && (temperature >= 18 && temperature <= 22) && (humidity >= 40 || humidity <= 50))
   {
-    newFeeling = "good";
+    feeling = "good";
   }
   else
   {
-    newFeeling = "happy";
-  }
-
-  if (newFeeling != feeling)
-  {
-    feeling = newFeeling;
-  }
-  else
-  {
-    return;
+    feeling = "happy";
   }
 }
 
@@ -445,7 +438,6 @@ void loop()
     while (client.connected())
     {
       getSoilMoist();
-
       // test ultrasonic sensor
       String data = client.readStringUntil('\n');
       data.trim();
