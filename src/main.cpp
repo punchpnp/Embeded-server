@@ -303,16 +303,16 @@ void handleLightSensorClient(WiFiClient &client)
 
 void handleFeeling()
 {
-  if (isnan(soilMoistValue) || isnan(lightSensorValue) || isnan(temperature) || isnan(humidity))
+  if (isnan(lightSensorValue) || isnan(temperature) || isnan(humidity))
   {
     Serial.println("Some data are missed!");
     return;
   }
-  if ((soilMoistValue >= 60 && soilMoistValue <= 80) && (lightSensorValue >= 600) && (temperature >= 22 && temperature <= 28) && (humidity >= 50 && humidity <= 70))
+  if ((lightSensorValue >= 600) && (temperature >= 22 && temperature <= 28) && (humidity >= 50 && humidity <= 70))
   {
     feeling = "happy";
   }
-  else if ((soilMoistValue >= 40 && soilMoistValue < 60) && (lightSensorValue >= 400 && lightSensorValue < 600) && (temperature >= 18 && temperature < 22) && (humidity >= 40 && humidity < 50))
+  else if ((lightSensorValue >= 400 && lightSensorValue < 600) && (temperature >= 18 && temperature < 22) && (humidity >= 40 && humidity < 50))
   {
     feeling = "good";
   }
@@ -375,58 +375,6 @@ void collectAndStoreAllSensorData()
   }
 }
 
-void getSoilMoist()
-{
-  if (Firebase.RTDB.getJSON(&fbdo, "Client/SensorData"))
-  {
-    FirebaseJson &json = fbdo.jsonObject();
-    String latestNode = "";
-    int totalNodes = 0;
-    int type;
-
-    json.iteratorBegin();
-    while (json.iteratorGet(totalNodes, type, latestNode, latestNode) != -1)
-    {
-      totalNodes++;
-    }
-    json.iteratorEnd();
-
-    if (totalNodes > 0)
-    {
-      json.iteratorBegin();
-      for (int i = 0; i < totalNodes; i++)
-      {
-        String key, value;
-        json.iteratorGet(i, type, key, value);
-        if (i == totalNodes - 1)
-        {
-          latestNode = key;
-        }
-      }
-      json.iteratorEnd();
-
-      String path = "Client/SensorData/" + latestNode + "/soilmoist";
-      if (Firebase.RTDB.getInt(&fbdo, path))
-      {
-        soilMoistValue = fbdo.intData();
-        Serial.println("Latest soilmoist: " + String(soilMoistValue));
-      }
-      else
-      {
-        Serial.println("Failed to get soil moisture value: " + fbdo.errorReason());
-      }
-    }
-    else
-    {
-      Serial.println("No sensor data available.");
-    }
-  }
-  else
-  {
-    Serial.println("Failed to retrieve sensor data: " + fbdo.errorReason());
-  }
-}
-
 void loop()
 {
   Blynk.run();
@@ -437,7 +385,6 @@ void loop()
     Serial.println("Client connected");
     while (client.connected())
     {
-      getSoilMoist();
       // test ultrasonic sensor
       String data = client.readStringUntil('\n');
       data.trim();
